@@ -78,9 +78,9 @@ done
 
 | 特徵                                         | 專案             |
 | ------------------------------------------- | -------------- |
-| `CMakeLists.txt` + `include/mt_unf_*.h`     | `nagra-tntsat` |
-| `robot/` + `*.robot`                        | `nagra-tntsat` |
-| `project.yml`（Ceedling）                     | `nagra-tntsat` |
+| `CMakeLists.txt` + `include/mt_unf_*.h`     | `Sym6-TNTSAT`  |
+| `robot/` + `*.robot`                        | `Sym6-TNTSAT`  |
+| `project.yml`（Ceedling）                     | `Sym6-TNTSAT`  |
 | `Android.bp` 或路徑含 `aosp`/`android`/`1319D`  | `android-aosp` |
 | LINUX DDK                                   | Sym6_SGT       |
 |                                              |                |
