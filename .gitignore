@@ -1,19 +1,10 @@
 # ═══════════════════════════════════════════════════════
-# second-brain .gitignore
+# ai-workspace .gitignore
 # 策略：骨架與範本進 Git，私密內容留本機 + Google Drive 同步
 # ═══════════════════════════════════════════════════════
 
-# ── 個人資料（含私人背景）─────────────────────────────
-/core/profile.md
-
-# ── 情境實際內容（含帳號/服務/個人資訊）──────────────
-/contexts/work/context.md
-/contexts/work/mcp.json
-/contexts/life/context.md
-/contexts/life/mcp.json
-
-# ── 研究情境（若有）──────────────────────────────────
-/contexts/research/
+# ── 個人真實值覆蓋（若日後拆分出來）──────────────────
+/rules/global.local.md
 
 # ── 工作專案（含公司 IP）─────────────────────────────
 /projects/nagra-tntsat.md
@@ -21,11 +12,8 @@
 # 新增工作專案時，在這裡補上檔名
 
 # ── 機密（API keys / tokens）─────────────────────────
-/secrets/*
-!/secrets/.template
-
-# ── Secure Mode 旗標（本機狀態，不需版控）────────────
-/.secure-mode
+# 真實憑證放使用者家目錄 ~/.mcp.env，不進這個 repo，
+# 這裡只保留 mcp/.env.example 範本（見下方 !）
 
 # ── 知識庫（第二階段，含個人知識）───────────────────
 /wiki/

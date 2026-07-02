@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# second-brain Setup — WSL
+# ai-workspace Setup — WSL
 # 使用方式: bash setup-wsl.sh
-# 支援：全新安裝 / 從舊版 ai_refrence 遷移
+# 支援：全新安裝 / 從舊版 ai_refrence 或 second-brain 遷移
+#
+# 注意：此腳本只負責「本機還沒有 clone」的一次性 bootstrap（建立 symlink）。
+# 日常更新（pull / symlink 校驗 / push）請改用 setup/sync.sh。
 set -euo pipefail
 
 # ── 設定（依實際路徑調整）─────────────────────────────
-GDRIVE="/mnt/d/GOOGLE_DRIVE_SYNC/second-brain"
-# 若從舊版遷移，請先將 Google Drive 內的資料夾更名為 second-brain
-# 舊名通常是 AI_參考資料 或 ai_refrence
-SECOND_BRAIN="$HOME/.second-brain"
+GDRIVE="/mnt/d/GOOGLE_DRIVE_SYNC/ai-workspace"
+# 若從舊版遷移，請先將 Google Drive 內的資料夾更名為 ai-workspace
+# 舊名通常是 second-brain、AI_參考資料 或 ai_refrence
+AI_WORKSPACE="$HOME/.ai-workspace"
 CLAUDE_HOME="$HOME/.claude"
 GEMINI_HOME="$HOME/.gemini"
 CODEX_HOME="$HOME/.codex"
@@ -22,7 +25,7 @@ backup()  { echo -e "${CYAN}[BACKUP] ${NC} $*"; }
 err()     { echo -e "${RED}[ERROR]  ${NC} $*" >&2; }
 
 # 舊版路徑特徵（用來識別需要遷移的舊 symlink）
-OLD_PATTERN="ai-context|ai_refrence|AI_參考資料"
+OLD_PATTERN="ai-context|ai_refrence|AI_參考資料|second-brain"
 
 smart_link() {
     local src="$1" target="$2"
@@ -91,7 +94,7 @@ smart_link() {
 }
 
 echo ""
-echo -e "${CYAN}=== second-brain Setup (WSL) ===${NC}"
+echo -e "${CYAN}=== ai-workspace Setup (WSL) ===${NC}"
 echo ""
 
 # 確認 Google Drive 掛載
@@ -99,7 +102,7 @@ if [ ! -d "$GDRIVE" ]; then
     err "Google Drive 路徑不存在: $GDRIVE"
     err "請確認："
     err "  1. D: 已掛載到 /mnt/d/"
-    err "  2. Google Drive 內的資料夾已更名為 second-brain"
+    err "  2. Google Drive 內的資料夾已更名為 ai-workspace"
     err "  3. 或修改腳本頂端的 GDRIVE 變數"
     echo ""
     echo "  掛載指令: sudo mkdir -p /mnt/d && sudo mount -t drvfs D: /mnt/d"
@@ -126,20 +129,20 @@ if [ -L "$OLD_CODEX_LINK" ]; then
     fi
 fi
 
-# 1. ~/.second-brain → Google Drive 根目錄
-smart_link "$SECOND_BRAIN" "$GDRIVE"
+# 1. ~/.ai-workspace → Google Drive 根目錄
+smart_link "$AI_WORKSPACE" "$GDRIVE"
 
 # 2. Claude: ~/.claude/CLAUDE.md
 mkdir -p "$CLAUDE_HOME"
 smart_link "$CLAUDE_HOME/CLAUDE.md" "$GDRIVE/adapters/claude/CLAUDE.md"
 
-# 3. Claude: ~/.claude/skills/<name>（per-skill symlink）
+# 3. Claude: ~/.claude/skills/<name>（per-skill symlink，來源為 skills/global/*）
 mkdir -p "$CLAUDE_HOME/skills"
-if [ -d "$GDRIVE/skills" ]; then
-    for skill_dir in "$GDRIVE/skills"/*/; do
+if [ -d "$GDRIVE/skills/global" ]; then
+    for skill_dir in "$GDRIVE/skills/global"/*/; do
         [ -d "$skill_dir" ] || continue
         skill_name="$(basename "$skill_dir")"
-        smart_link "$CLAUDE_HOME/skills/$skill_name" "$GDRIVE/skills/$skill_name"
+        smart_link "$CLAUDE_HOME/skills/$skill_name" "$GDRIVE/skills/global/$skill_name"
     done
 fi
 
@@ -156,26 +159,15 @@ smart_link "$CODEX_HOME/AGENTS.md" "$GDRIVE/adapters/codex/AGENTS.md"
 
 # 7. Google Drive 根目錄 CLAUDE.md（project-level symlink）
 GDRIVE_PARENT="$(dirname "$GDRIVE")"
-CLAUDE_PROJECTS_DIR="$GDRIVE/adapters/claude/projects"
-mkdir -p "$CLAUDE_PROJECTS_DIR"
-smart_link "$GDRIVE_PARENT/CLAUDE.md" "$GDRIVE/adapters/claude/projects/google-drive-sync.md"
-
-# 8. Secure Mode
-echo ""
-read -rp "啟用 Secure Mode？（建議啟用，保護工作/個人資產隔離）[Y/n]: " secure_ans
-if [[ "${secure_ans,,}" != "n" ]]; then
-    touch "$GDRIVE/.secure-mode"
-    ok "Secure Mode 已啟用"
-else
-    rm -f "$GDRIVE/.secure-mode"
-    skip "Secure Mode 未啟用"
-fi
+PROJECTS_DIR="$GDRIVE/projects"
+mkdir -p "$PROJECTS_DIR"
+smart_link "$GDRIVE_PARENT/CLAUDE.md" "$GDRIVE/projects/google-drive-sync.md"
 
 # ── 驗證 ──────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}=== 驗證結果 ===${NC}"
 for f in \
-    "$SECOND_BRAIN" \
+    "$AI_WORKSPACE" \
     "$CLAUDE_HOME/CLAUDE.md" \
     "$CLAUDE_HOME/statusline.sh" \
     "$GEMINI_HOME/GEMINI.md" \
@@ -189,7 +181,7 @@ do
     fi
 done
 echo "  Skills:"
-for skill_dir in "$GDRIVE/skills"/*/; do
+for skill_dir in "$GDRIVE/skills/global"/*/; do
     [ -d "$skill_dir" ] || continue
     skill_name="$(basename "$skill_dir")"
     f="$CLAUDE_HOME/skills/$skill_name"
@@ -202,3 +194,4 @@ done
 
 echo ""
 echo -e "${GREEN}完成！請重啟 Claude Code / Gemini CLI / Codex CLI 讓變更生效。${NC}"
+echo -e "${CYAN}日常更新請改用: bash setup/sync.sh${NC}"

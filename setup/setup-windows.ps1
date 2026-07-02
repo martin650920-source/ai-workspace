@@ -1,24 +1,27 @@
-# second-brain Setup — Windows
-# 支援：全新安裝 / 從舊版 ai_refrence 遷移
+# ai-workspace Setup — Windows
+# 支援：全新安裝 / 從舊版 ai_refrence 或 second-brain 遷移
 # 需要以「系統管理員」身份執行，或開啟開發者模式
 # 使用方式: pwsh -ExecutionPolicy Bypass -File setup-windows.ps1
+#
+# 注意：此腳本只負責「本機還沒有 clone」的一次性 bootstrap（建立 symlink）。
+# 日常更新（pull / symlink 校驗 / push）請改用 setup/sync.sh（WSL/SSH）。
 
 #Requires -RunAsAdministrator
 $ErrorActionPreference = "Stop"
 
 # ── 設定（依實際路徑調整）─────────────────────────────
-$GDriveRoot   = "d:\GOOGLE_DRIVE_SYNC\second-brain"
-# 若從舊版遷移，請先將 Google Drive 內的資料夾更名為 second-brain
-# 舊名通常是 AI_參考資料 或 ai_refrence
+$GDriveRoot   = "d:\GOOGLE_DRIVE_SYNC\ai-workspace"
+# 若從舊版遷移，請先將 Google Drive 內的資料夾更名為 ai-workspace
+# 舊名通常是 second-brain、AI_參考資料 或 ai_refrence
 $UserHome     = $env:USERPROFILE
-$SecondBrain  = "$UserHome\.second-brain"
+$AiWorkspace  = "$UserHome\.ai-workspace"
 $ClaudeHome   = "$UserHome\.claude"
 $GeminiHome   = "$UserHome\.gemini"
 $CodexHome    = "$UserHome\.codex"
 # ──────────────────────────────────────────────────────
 
 # 舊版路徑特徵（用來識別需要遷移的舊 symlink）
-$OldPattern = "ai-context|ai_refrence|AI_參考資料"
+$OldPattern = "ai-context|ai_refrence|AI_參考資料|second-brain"
 
 function Write-OK($msg)      { Write-Host "[OK]      $msg" -ForegroundColor Green }
 function Write-Skip($msg)    { Write-Host "[SKIP]    $msg" -ForegroundColor Yellow }
@@ -99,7 +102,7 @@ function Smart-Symlink {
 }
 
 Write-Host ""
-Write-Host "=== second-brain Setup (Windows) ===" -ForegroundColor Cyan
+Write-Host "=== ai-workspace Setup (Windows) ===" -ForegroundColor Cyan
 Write-Host ""
 
 # 確認 Google Drive 路徑存在
@@ -107,7 +110,7 @@ if (-not (Test-Path $GDriveRoot)) {
     Write-Err "Google Drive 路徑不存在: $GDriveRoot"
     Write-Err "請確認："
     Write-Err "  1. Google Drive 已同步完成"
-    Write-Err "  2. 資料夾已更名為 second-brain"
+    Write-Err "  2. 資料夾已更名為 ai-workspace"
     Write-Err "  3. 或修改腳本頂端的 `$GDriveRoot 變數"
     exit 1
 }
@@ -128,17 +131,17 @@ if ($oldCodexItem -and $oldCodexItem.LinkType -eq "SymbolicLink" -and $oldCodexI
     Write-Migrate "移除舊版 codex\instructions.md symlink（改為 AGENTS.md）"
 }
 
-# 1. ~/.second-brain → Google Drive 根目錄
-Smart-Symlink -LinkPath $SecondBrain -Target $GDriveRoot
+# 1. ~/.ai-workspace → Google Drive 根目錄
+Smart-Symlink -LinkPath $AiWorkspace -Target $GDriveRoot
 
 # 2. Claude: ~/.claude/CLAUDE.md
 if (-not (Test-Path $ClaudeHome)) { New-Item -ItemType Directory -Path $ClaudeHome | Out-Null }
 Smart-Symlink -LinkPath "$ClaudeHome\CLAUDE.md" -Target "$GDriveRoot\adapters\claude\CLAUDE.md"
 
-# 3. Claude: ~/.claude/skills/<name>（per-skill symlink）
+# 3. Claude: ~/.claude/skills/<name>（per-skill symlink，來源為 skills/global/*）
 $skillsDir = "$ClaudeHome\skills"
 if (-not (Test-Path $skillsDir)) { New-Item -ItemType Directory -Path $skillsDir | Out-Null }
-$skillsSource = "$GDriveRoot\skills"
+$skillsSource = "$GDriveRoot\skills\global"
 if (Test-Path $skillsSource) {
     Get-ChildItem $skillsSource -Directory | ForEach-Object {
         Smart-Symlink -LinkPath "$skillsDir\$($_.Name)" -Target $_.FullName
@@ -158,26 +161,15 @@ Smart-Symlink -LinkPath "$CodexHome\AGENTS.md" -Target "$GDriveRoot\adapters\cod
 
 # 7. Google Drive 根目錄 CLAUDE.md（project-level symlink）
 $GDriveParent = Split-Path $GDriveRoot -Parent
-$claudeProjectsDir = "$GDriveRoot\adapters\claude\projects"
-if (-not (Test-Path $claudeProjectsDir)) { New-Item -ItemType Directory -Path $claudeProjectsDir | Out-Null }
-Smart-Symlink -LinkPath "$GDriveParent\CLAUDE.md" -Target "$GDriveRoot\adapters\claude\projects\google-drive-sync.md"
-
-# 8. Secure Mode
-Write-Host ""
-$secureAns = Read-Host "啟用 Secure Mode？（建議啟用，保護工作/個人資產隔離）[Y/n]"
-if ($secureAns -ne "n" -and $secureAns -ne "N") {
-    New-Item -ItemType File -Path "$GDriveRoot\.secure-mode" -Force | Out-Null
-    Write-OK "Secure Mode 已啟用"
-} else {
-    if (Test-Path "$GDriveRoot\.secure-mode") { Remove-Item "$GDriveRoot\.secure-mode" -Force }
-    Write-Skip "Secure Mode 未啟用"
-}
+$projectsDir = "$GDriveRoot\projects"
+if (-not (Test-Path $projectsDir)) { New-Item -ItemType Directory -Path $projectsDir | Out-Null }
+Smart-Symlink -LinkPath "$GDriveParent\CLAUDE.md" -Target "$GDriveRoot\projects\google-drive-sync.md"
 
 # ── 驗證 ──────────────────────────────────────────────
 Write-Host ""
 Write-Host "=== 驗證結果 ===" -ForegroundColor Cyan
 @(
-    $SecondBrain,
+    $AiWorkspace,
     "$ClaudeHome\CLAUDE.md",
     "$ClaudeHome\statusline.sh",
     "$GeminiHome\GEMINI.md",
@@ -206,3 +198,4 @@ if (Test-Path $skillsSource) {
 
 Write-Host ""
 Write-Host "完成！請重啟 Claude Code / Gemini CLI / Codex CLI 讓變更生效。" -ForegroundColor Green
+Write-Host "日常更新請改用 WSL/SSH 上的 setup/sync.sh（pull + symlink 校驗 + push）。" -ForegroundColor Cyan

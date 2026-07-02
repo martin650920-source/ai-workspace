@@ -1,5 +1,5 @@
 {
-  "_comment": "工作情境 MCP 白名單 — 只列公司工具，複製為 mcp.json 並填入真實設定",
+  "_comment": "MCP 架構設定 — 只引用環境變數，不含實際憑證值。實際值放 ~/.mcp.env（不進 Git）。",
   "mcpServers": {
     "gitlab": {
       "command": "mcp-gitlab",

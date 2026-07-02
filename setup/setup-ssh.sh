@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# second-brain Setup — SSH Remote Host
+# ai-workspace Setup — SSH Remote Host
 # 使用方式: bash setup-ssh.sh <git-remote-url>
-# 範例:     bash setup-ssh.sh git@github.com:yourname/second-brain.git
-# 支援：全新安裝 / 從舊版 ai_refrence 遷移
+# 範例:     bash setup-ssh.sh git@github.com:yourname/ai-workspace.git
+# 支援：全新安裝 / 從舊版 ai_refrence 或 second-brain 遷移
+#
+# 注意：此腳本只負責「本機還沒有 clone」的一次性 bootstrap（clone + 建立 symlink）。
+# 日常更新（pull / symlink 校驗 / push）請改用 setup/sync.sh。
 set -euo pipefail
 
 # ── 設定 ──────────────────────────────────────────────
 GIT_REMOTE="${1:-}"
-SECOND_BRAIN_GIT="$HOME/.second-brain-git"   # git clone 位置
-SECOND_BRAIN="$HOME/.second-brain"           # AI 工具讀取路徑（symlink）
+AI_WORKSPACE_GIT="$HOME/.ai-workspace-git"   # git clone 位置
+AI_WORKSPACE="$HOME/.ai-workspace"           # AI 工具讀取路徑（symlink）
 CLAUDE_HOME="$HOME/.claude"
 GEMINI_HOME="$HOME/.gemini"
 CODEX_HOME="$HOME/.codex"
@@ -21,11 +24,11 @@ migrate() { echo -e "${CYAN}[MIGRATE]${NC} $*"; }
 backup()  { echo -e "${CYAN}[BACKUP] ${NC} $*"; }
 err()     { echo -e "${RED}[ERR]    ${NC} $*" >&2; }
 
-OLD_PATTERN="ai-context|ai_refrence|AI_參考資料"
+OLD_PATTERN="ai-context|ai_refrence|AI_參考資料|second-brain"
 
 if [ -z "$GIT_REMOTE" ]; then
     echo "用法: $0 <git-remote-url>"
-    echo "範例: $0 git@github.com:yourname/second-brain.git"
+    echo "範例: $0 git@github.com:yourname/ai-workspace.git"
     exit 1
 fi
 
@@ -92,7 +95,7 @@ smart_link() {
 }
 
 echo ""
-echo -e "${CYAN}=== second-brain Setup (SSH Remote) ===${NC}"
+echo -e "${CYAN}=== ai-workspace Setup (SSH Remote) ===${NC}"
 echo ""
 
 # ── 遷移清理 ──────────────────────────────────────────
@@ -115,70 +118,59 @@ if [ -L "$OLD_CODEX_LINK" ]; then
 fi
 
 # 1. Clone 或 pull git repo
-if [ -d "$SECOND_BRAIN_GIT/.git" ]; then
-    echo "[GIT] 更新 $SECOND_BRAIN_GIT ..."
-    if ! git -C "$SECOND_BRAIN_GIT" pull --ff-only; then
+if [ -d "$AI_WORKSPACE_GIT/.git" ]; then
+    echo "[GIT] 更新 $AI_WORKSPACE_GIT ..."
+    if ! git -C "$AI_WORKSPACE_GIT" pull --ff-only; then
         err "git pull 失敗，請手動處理："
-        err "  git -C \"$SECOND_BRAIN_GIT\" fetch && git -C \"$SECOND_BRAIN_GIT\" reset --hard origin/main"
+        err "  git -C \"$AI_WORKSPACE_GIT\" fetch && git -C \"$AI_WORKSPACE_GIT\" reset --hard origin/main"
         exit 1
     fi
     ok "git pull 完成"
 else
     echo "[GIT] Clone $GIT_REMOTE ..."
-    git clone "$GIT_REMOTE" "$SECOND_BRAIN_GIT"
+    git clone "$GIT_REMOTE" "$AI_WORKSPACE_GIT"
     ok "git clone 完成"
 fi
 
-# 2. ~/.second-brain → git clone 目錄
-smart_link "$SECOND_BRAIN" "$SECOND_BRAIN_GIT"
+# 2. ~/.ai-workspace → git clone 目錄
+smart_link "$AI_WORKSPACE" "$AI_WORKSPACE_GIT"
 
 # 3. Claude: ~/.claude/CLAUDE.md
 mkdir -p "$CLAUDE_HOME"
-smart_link "$CLAUDE_HOME/CLAUDE.md" "$SECOND_BRAIN_GIT/adapters/claude/CLAUDE.md"
+smart_link "$CLAUDE_HOME/CLAUDE.md" "$AI_WORKSPACE_GIT/adapters/claude/CLAUDE.md"
 
-# 4. Claude: ~/.claude/skills/<name>（per-skill）
+# 4. Claude: ~/.claude/skills/<name>（per-skill，來源為 skills/global/*）
 mkdir -p "$CLAUDE_HOME/skills"
-if [ -d "$SECOND_BRAIN_GIT/skills" ]; then
-    for skill_dir in "$SECOND_BRAIN_GIT/skills"/*/; do
+if [ -d "$AI_WORKSPACE_GIT/skills/global" ]; then
+    for skill_dir in "$AI_WORKSPACE_GIT/skills/global"/*/; do
         [ -d "$skill_dir" ] || continue
         skill_name="$(basename "$skill_dir")"
-        smart_link "$CLAUDE_HOME/skills/$skill_name" "$SECOND_BRAIN_GIT/skills/$skill_name"
+        smart_link "$CLAUDE_HOME/skills/$skill_name" "$AI_WORKSPACE_GIT/skills/global/$skill_name"
     done
 fi
 
 # 5. Claude: ~/.claude/statusline.sh
-smart_link "$CLAUDE_HOME/statusline.sh" "$SECOND_BRAIN_GIT/config/statusline.sh"
+smart_link "$CLAUDE_HOME/statusline.sh" "$AI_WORKSPACE_GIT/config/statusline.sh"
 
 # 6. Gemini CLI: ~/.gemini/GEMINI.md
 mkdir -p "$GEMINI_HOME"
-smart_link "$GEMINI_HOME/GEMINI.md" "$SECOND_BRAIN_GIT/adapters/gemini/GEMINI.md"
+smart_link "$GEMINI_HOME/GEMINI.md" "$AI_WORKSPACE_GIT/adapters/gemini/GEMINI.md"
 
 # 7. Codex CLI: ~/.codex/AGENTS.md
 mkdir -p "$CODEX_HOME"
-smart_link "$CODEX_HOME/AGENTS.md" "$SECOND_BRAIN_GIT/adapters/codex/AGENTS.md"
+smart_link "$CODEX_HOME/AGENTS.md" "$AI_WORKSPACE_GIT/adapters/codex/AGENTS.md"
 
-# 8. Secure Mode
-echo ""
-read -rp "啟用 Secure Mode？（建議啟用，保護工作/個人資產隔離）[Y/n]: " secure_ans
-if [[ "${secure_ans,,}" != "n" ]]; then
-    touch "$SECOND_BRAIN_GIT/.secure-mode"
-    ok "Secure Mode 已啟用"
-else
-    rm -f "$SECOND_BRAIN_GIT/.secure-mode"
-    skip "Secure Mode 未啟用"
-fi
-
-# 9. cron 自動 git pull
-CRON_LOG="$HOME/.second-brain-pull.log"
+# 8. cron 自動 git pull
+CRON_LOG="$HOME/.ai-workspace-pull.log"
 if [ -t 0 ]; then
     echo ""
     read -rp "設定每日 09:00 自動 git pull？[y/N]: " ans
     if [[ "${ans,,}" == "y" ]]; then
-        CRON_CMD="0 9 * * * git -C \"$SECOND_BRAIN_GIT\" pull --ff-only >> \"$CRON_LOG\" 2>&1"
-        ( crontab -l 2>/dev/null | grep -v "second-brain-git"; echo "$CRON_CMD" ) | crontab -
+        CRON_CMD="0 9 * * * git -C \"$AI_WORKSPACE_GIT\" pull --ff-only >> \"$CRON_LOG\" 2>&1"
+        ( crontab -l 2>/dev/null | grep -v "ai-workspace-git"; echo "$CRON_CMD" ) | crontab -
         ok "cron 已設定（log: $CRON_LOG）"
     else
-        echo "跳過。手動更新: git -C \"$SECOND_BRAIN_GIT\" pull"
+        echo "跳過。手動更新: bash \"$AI_WORKSPACE_GIT/setup/sync.sh\""
     fi
 fi
 
@@ -186,7 +178,7 @@ fi
 echo ""
 echo -e "${CYAN}=== 驗證結果 ===${NC}"
 for f in \
-    "$SECOND_BRAIN" \
+    "$AI_WORKSPACE" \
     "$CLAUDE_HOME/CLAUDE.md" \
     "$CLAUDE_HOME/statusline.sh" \
     "$GEMINI_HOME/GEMINI.md" \
@@ -199,7 +191,7 @@ do
     fi
 done
 echo "  Skills:"
-for skill_dir in "$SECOND_BRAIN_GIT/skills"/*/; do
+for skill_dir in "$AI_WORKSPACE_GIT/skills/global"/*/; do
     [ -d "$skill_dir" ] || continue
     skill_name="$(basename "$skill_dir")"
     f="$CLAUDE_HOME/skills/$skill_name"
@@ -212,4 +204,4 @@ done
 
 echo ""
 echo -e "${GREEN}完成！請重啟 Claude Code / Gemini CLI / Codex CLI 讓變更生效。${NC}"
-echo "日後更新: git -C \"$SECOND_BRAIN_GIT\" pull"
+echo "日後更新: bash \"$AI_WORKSPACE_GIT/setup/sync.sh\"（或 sync.sh push 上傳變更）"
