@@ -7,9 +7,12 @@
 /rules/global.local.md
 
 # ── 工作專案（含公司 IP）─────────────────────────────
-/projects/nagra-tntsat.md
-/projects/android-aosp.md
-# 新增工作專案時，在這裡補上檔名
+# 白名單機制：projects/ 下預設全部視為機密不進 Git，
+# 只有明確列在下面 ! 的檔案才會被公開。
+# 好處：改專案代號 / 新增專案都不會漏掉，不用手動維護黑名單。
+/projects/*
+!/projects/_template.md
+!/projects/google-drive-sync.md
 
 # ── 機密（API keys / tokens）─────────────────────────
 # 真實憑證放使用者家目錄 ~/.mcp.env，不進這個 repo，
