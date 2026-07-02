@@ -13,7 +13,7 @@
 
 ### 改名 Checklist（動工時執行）
 
-- [ ] GitHub repo rename：`ai_refrence` → `ai-workspace`
+- [x] GitHub repo rename：`second-brain` → `ai-workspace`（2026-07-02，`martin650920-source/ai-workspace`）
 - [ ] 各主機本地 clone 資料夾名稱同步改名：`~/ai-refrence` → `~/ai-workspace`
 - [ ] 各主機確認 `git remote -v` 指向新 URL（不依賴 GitHub 自動轉址）
 - [ ] 重建所有 symlink（改名後舊 symlink 全部斷鍊）

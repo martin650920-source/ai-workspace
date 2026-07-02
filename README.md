@@ -117,10 +117,11 @@ context-loader 會偵測到 `CLAUDE.md` 不存在，提示執行 `/init-project-
 
 ## 從舊版 `second-brain` 遷移
 
-若要把正式在用的 `second-brain` clone 換成這份新架構，需要：
-1. GitHub repo 改名 `second-brain` → `ai-workspace`
-2. 各主機（含這台機器正式在用的 `~/.second-brain` 指向的 clone）重新 clone 或重新命名資料夾
-3. 各主機重新執行對應的 `setup-*` 腳本重建 symlink
-4. 確認 `git remote -v` 指向新 URL
+GitHub repo 已改名 `second-brain` → `ai-workspace`（2026-07-02）。舊網址 GitHub 會自動重定向一段時間，但建議盡快處理：
 
-這些步驟牽涉共用/遠端狀態與多台主機，不由這份 sandbox 重構自動完成，需自行安排時間執行。詳見 [`ai-workspace-design.md`](./ai-workspace-design.md) 開頭的改名 Checklist。
+1. ~~GitHub repo 改名~~ ✅ 已完成
+2. 各主機（含這台機器正式在用的 `~/.second-brain` 指向的舊 clone）重新 clone 或重新命名資料夾 → 待執行
+3. 各主機重新執行對應的 `setup-*` 腳本重建 symlink → 待執行
+4. 確認每台主機 `git remote -v` 指向新 URL `martin650920-source/ai-workspace.git`（本機已更新，其餘主機需自行確認）
+
+詳見 [`ai-workspace-design.md`](./ai-workspace-design.md) 開頭的改名 Checklist。
