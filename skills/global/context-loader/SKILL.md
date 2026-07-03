@@ -74,11 +74,17 @@ done
 
 ## Step 3：專案操作
 
-### 3.1 先判斷 cwd 現況（不用問使用者）
+### 3.1 先判斷觸發方式與 cwd 現況（不用問使用者）
 
-檢查 `<cwd>/CLAUDE.md`：
-- **已是 symlink** → 已經連結過，解析 symlink 指向的 `<BASE>/projects/<name>.md` 取得 `<name>`，直接視同選定專案 `<name>`，跳過本 Step 剩餘部分，進入 Step 4（不用每次都跳選單，已設定好的專案零打擾）
-- **是真實檔案**（尚未接上 ai-workspace）或**完全不存在** → 進入 3.2
+**先判斷這次是怎麼觸發的：**
+- **自動觸發**（session 開始，由 adapters bootstrap 帶出）
+- **手動觸發**（使用者主動說「load context」「載入 context」或輸入 `/context-loader`）
+
+**再檢查 `<cwd>/CLAUDE.md`：**
+- **已是 symlink**：
+  - 若是**自動觸發** → 已經連結過，解析 symlink 指向的 `<BASE>/projects/<name>.md` 取得 `<name>`，直接視同選定專案 `<name>`，跳過本 Step 剩餘部分，進入 Step 4（不用每次開 session 都跳選單，已設定好的專案零打擾）
+  - 若是**手動觸發** → 使用者主動再叫一次，代表想做點什麼（例如移除、換連結），**一律跳出 3.2 操作選單**，不要因為已連結就跳過
+- **是真實檔案**（尚未接上 ai-workspace）或**完全不存在** → 不論自動/手動觸發，都進入 3.2
 
 ### 3.2 操作選單
 
